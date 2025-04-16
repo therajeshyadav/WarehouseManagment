@@ -1,0 +1,18 @@
+.App {
+  font-family: Arial, sans-serif;
+}
+
+.main-content {
+  display: flex;
+}
+
+
+.warehouse-map {
+  flex: 1;
+  padding: 20px;
+}
+
+canvas:hover {
+  background-color: #fafafa;
+}
+
