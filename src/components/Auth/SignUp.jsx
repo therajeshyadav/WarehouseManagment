@@ -1,24 +1,44 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Signup = () => {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("employee");
+  const [role, setRole] = useState("EMPLOYEE");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const navigate = useNavigate();
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
-    // You can store this user or send it to backend here
-    alert("Account created successfully!");
-    navigate("/login");
+    try {
+      const response = await axios.post("http://localhost:8087/auth/signup", {
+        username,
+        email,
+        password,
+        role,
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        setSuccess("Account created successfully!");
+        setTimeout(() => navigate("/login"), 1500);
+      }
+    } catch (err) {
+      setError("Signup failed. Please try again.");
+      console.error("Signup error:", err);
+    }
   };
 
   return (
@@ -39,6 +59,9 @@ const Signup = () => {
           <h2 className="text-lg font-semibold text-gray-800">Sign Up</h2>
         </div>
 
+        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+        {success && <p className="text-green-500 text-sm mb-2">{success}</p>}
+
         <form onSubmit={handleSignup} className="space-y-3 text-sm">
           <div>
             <label className="block text-gray-700 mb-1">Role</label>
@@ -47,13 +70,25 @@ const Signup = () => {
               onChange={(e) => setRole(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             >
-              <option value="admin">Admin</option>
-              <option value="employee">Employee</option>
+              <option value="ADMIN">Admin</option>
+              <option value="EMPLOYEE">Employee</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-1">User Name</label>
+            <label className="block text-gray-700 mb-1">Username</label>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 mb-1">Email</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}

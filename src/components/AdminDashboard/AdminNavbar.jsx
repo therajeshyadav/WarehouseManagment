@@ -12,6 +12,7 @@ const AdminNavbar = () => {
     { label: "Orders", path: "/admin-dashboard/orders" },
     { label: "Reports", path: "/admin-dashboard/reports" },
     { label: "Settings", path: "/admin-dashboard/settings" },
+    { label: "Configure", path: "/admin-dashboard/configure" },
   ];
 
   const handleLogout = () => {

@@ -1,19 +1,51 @@
+// src/components/Auth/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-const Login = ({ handleLogin }) => {
+const Login = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("employee");
-
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  const submitHandler = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    handleLogin(email, password, role, navigate);
-    setEmail("");
-    setPassword("");
-    setRole("employee");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await axios.post("http://localhost:8087/auth/login", {
+        email,
+        password,
+      });
+
+      if (response.data.accessToken) {
+        const role = response.data.role?.toUpperCase();
+
+        localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("userId", response.data.userId);
+        localStorage.setItem("role", role);
+
+        setSuccess("Login successful! Redirecting...");
+        onLogin(); // ✅ Update App.jsx auth state
+
+        // Navigate to dashboard
+        if (role === "ADMIN") {
+          navigate("/admin-dashboard");
+        } else if (role === "EMPLOYEE") {
+          navigate("/employee-dashboard");
+        } else {
+          setError("Unknown role. Contact admin.");
+        }
+      } else {
+        setError("Invalid credentials. Please try again.");
+      }
+    } catch (err) {
+      setError("Login failed. Please check your email or password.");
+      console.error("Login error:", err);
+    }
   };
 
   return (
@@ -23,7 +55,6 @@ const Login = ({ handleLogin }) => {
         alt="Background"
         className="absolute top-0 left-0 w-full h-full object-cover opacity-30"
       />
-
       <div className="relative z-10 bg-white w-full max-w-md rounded-lg shadow-lg p-6">
         <div className="text-center mb-4">
           <img
@@ -34,26 +65,17 @@ const Login = ({ handleLogin }) => {
           <h2 className="text-lg font-semibold text-gray-800">Login</h2>
         </div>
 
-        <form onSubmit={submitHandler} className="space-y-3 text-sm">
-          <div>
-            <label className="block text-gray-700 mb-1">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="admin">Admin</option>
-              <option value="employee">Employee</option>
-            </select>
-          </div>
+        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+        {success && <p className="text-green-500 text-sm mb-2">{success}</p>}
 
+        <form onSubmit={handleSubmit} className="space-y-3 text-sm">
           <div>
-            <label className="block text-gray-700 mb-1">User Name</label>
+            <label className="block text-gray-700 mb-1">Email</label>
             <input
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              type="email"
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="Enter your email"
             />
@@ -62,10 +84,10 @@ const Login = ({ handleLogin }) => {
           <div>
             <label className="block text-gray-700 mb-1">Password</label>
             <input
+              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              type="password"
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="Enter your password"
             />
