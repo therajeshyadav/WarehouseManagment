@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 export default function StoreProduct() {
   const [prodName, setProdName] = useState("");
-  const [category, setCategory] = useState("ELECTRONICS");
+  const [category, setCategory] = useState("ELECTRONIC");
   const [size, setSize] = useState("");
   const [weight, setWeight] = useState("");
   const [rackId, setRackId] = useState(""); // ✅ new
@@ -27,7 +27,7 @@ export default function StoreProduct() {
 
     try {
       const token = localStorage.getItem("token");
-    
+
       const res = await fetch(
         `http://localhost:8087/warehouse/store/${rackId}/${compartmentId}`,
         {
@@ -39,12 +39,14 @@ export default function StoreProduct() {
           body: JSON.stringify(payload),
         }
       );
-    
+
       if (!res.ok) {
         const errorData = await res.json(); // try to get error body
-        throw new Error(errorData.message || "Something went wrong while storing product");
+        throw new Error(
+          errorData.message || "Something went wrong while storing product"
+        );
       }
-    
+
       const data = await res.json();
       setResponse(data);
     } catch (err) {
@@ -52,7 +54,7 @@ export default function StoreProduct() {
     } finally {
       setLoading(false);
     }
-};  
+  };
   return (
     <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
       <h2 className="text-xl font-bold mb-4">📦 Store Product</h2>
@@ -71,7 +73,7 @@ export default function StoreProduct() {
           onChange={(e) => setCategory(e.target.value)}
           className="w-full border px-3 py-2 rounded"
         >
-          <option value="ELECTRONICS">Electronics</option>
+          <option value="ELECTRONICS">Electronic</option>
           <option value="FURNITURE">Furniture</option>
           <option value="CLOTHING">Clothing</option>
           <option value="FOOD">Food</option>
