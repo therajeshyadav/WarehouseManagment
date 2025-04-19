@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import WarehouseMap from "../common/WarehouseMap"; // assumes you already have this
+import WarehouseMap from "../common/WarehouseMap";
 
 function RetrieveProduct() {
   const [productCode, setProductCode] = useState("");
@@ -16,8 +16,17 @@ function RetrieveProduct() {
     setRetrieved(false);
 
     try {
-      const response = await axios.get(`/api/products/${productCode}`);
-      setProductData(response.data);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `http://localhost:8087/warehouse/product/${productCode}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setProductData(res.data);
     } catch (err) {
       setError("Product not found!");
     } finally {
@@ -27,7 +36,18 @@ function RetrieveProduct() {
 
   const handleRetrieve = async () => {
     try {
-      await axios.put(`/api/products/${productCode}/retrieve`);
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `http://localhost:8087/warehouse/retrieve/${productData.rackId}/${productData.compartmentId}/${productData.prodId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       setRetrieved(true);
     } catch (err) {
       setError("Failed to mark as retrieved");
@@ -64,12 +84,15 @@ function RetrieveProduct() {
             <strong>Name:</strong> {productData.name}
           </p>
           <p>
-            <strong>Location:</strong> Rack {productData.rack}, Row{" "}
-            {productData.row}
+            <strong>Location:</strong> Rack {productData.rackId}, Compartment{" "}
+            {productData.compartmentId}
           </p>
 
           <WarehouseMap
-            highlightPathTo={{ rack: productData.rack, row: productData.row }}
+            highlightPathTo={{
+              rack: productData.rackId,
+              row: productData.compartmentId,
+            }}
           />
 
           {!retrieved ? (
