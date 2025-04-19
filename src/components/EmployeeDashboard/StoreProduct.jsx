@@ -26,20 +26,25 @@ export default function StoreProduct() {
     };
 
     try {
+      const token = localStorage.getItem("token");
+    
       const res = await fetch(
         `http://localhost:8087/warehouse/store/${rackId}/${compartmentId}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }), // only adds header if token exists
           },
           body: JSON.stringify(payload),
         }
       );
-
-      if (!res.ok)
-        throw new Error("Something went wrong while storing product");
-
+    
+      if (!res.ok) {
+        const errorData = await res.json(); // try to get error body
+        throw new Error(errorData.message || "Something went wrong while storing product");
+      }
+    
       const data = await res.json();
       setResponse(data);
     } catch (err) {
@@ -47,8 +52,7 @@ export default function StoreProduct() {
     } finally {
       setLoading(false);
     }
-  };
-
+};  
   return (
     <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
       <h2 className="text-xl font-bold mb-4">📦 Store Product</h2>
