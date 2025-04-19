@@ -3,7 +3,7 @@ import axios from "axios";
 import WarehouseMap from "../common/WarehouseMap";
 
 function RetrieveProduct() {
-  const [productCode, setProductCode] = useState("");
+  const [prodId, setProdId] = useState("");
   const [productData, setProductData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [retrieved, setRetrieved] = useState(false);
@@ -17,18 +17,13 @@ function RetrieveProduct() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:8087/warehouse/product/${productCode}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await axios.get(
+        `http://localhost:8087/warehouse/product/id/${prodId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      setProductData(res.data);
+      setProductData(response.data);
     } catch (err) {
-      setError("Product not found!");
+      setError(err.response?.data?.message || "❌ Product not found!");
     } finally {
       setLoading(false);
     }
@@ -37,64 +32,53 @@ function RetrieveProduct() {
   const handleRetrieve = async () => {
     try {
       const token = localStorage.getItem("token");
-
       await axios.put(
         `http://localhost:8087/warehouse/retrieve/${productData.rackId}/${productData.compartmentId}/${productData.prodId}`,
         {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setRetrieved(true);
     } catch (err) {
-      setError("Failed to mark as retrieved");
+      setError("❌ Failed to mark as retrieved");
     }
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Retrieve Product</h2>
-
+    <div className="p-6 max-w-2xl mx-auto bg-white rounded shadow">
+      <h2 className="text-2xl font-bold mb-4">📦 Retrieve Product</h2>
       <div className="flex gap-4 mb-4">
         <input
           type="text"
-          value={productCode}
-          onChange={(e) => setProductCode(e.target.value)}
-          placeholder="Enter or scan product code"
-          className="border px-4 py-2 rounded w-1/3"
+          value={prodId}
+          onChange={(e) => setProdId(e.target.value)}
+          placeholder="Enter product ID"
+          className="border px-4 py-2 rounded w-full"
         />
         <button
           onClick={handleScan}
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
-          Scan
+          Fetch
         </button>
       </div>
-
-      {loading && <p>Loading product info...</p>}
+      {loading && <p>🔄 Loading product info...</p>}
       {error && <p className="text-red-500">{error}</p>}
-
       {productData && (
         <div className="bg-gray-100 p-4 rounded mb-4">
           <h3 className="text-lg font-semibold">Product Info:</h3>
           <p>
-            <strong>Name:</strong> {productData.name}
+            <strong>Name:</strong> {productData.prodName}
           </p>
           <p>
             <strong>Location:</strong> Rack {productData.rackId}, Compartment{" "}
             {productData.compartmentId}
           </p>
-
           <WarehouseMap
             highlightPathTo={{
               rack: productData.rackId,
               row: productData.compartmentId,
             }}
           />
-
           {!retrieved ? (
             <button
               onClick={handleRetrieve}
