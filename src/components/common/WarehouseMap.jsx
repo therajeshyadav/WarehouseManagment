@@ -3,61 +3,11 @@ import PF from "pathfinding";
 
 const WarehouseMap = () => {
   const canvasRef = useRef(null);
+  const [racks, setRacks] = useState([]);
   const [points, setPoints] = useState([]);
   const [selectedRack, setSelectedRack] = useState(null);
   const [pathLength, setPathLength] = useState(null);
   const gridSize = 10;
-
-  const racks = [
-    {
-      id: 1,
-      x: 50,
-      y: 50,
-      width: 50,
-      height: 100,
-      products: ["Engine Parts", "Tires", "Brakes"],
-    },
-    {
-      id: 2,
-      x: 110,
-      y: 50,
-      width: 50,
-      height: 100,
-      products: ["Wheels", "Suspension", "Filters"],
-    },
-    {
-      id: 3,
-      x: 170,
-      y: 50,
-      width: 50,
-      height: 100,
-      products: ["Oil", "Batteries", "Spark Plugs"],
-    },
-    {
-      id: 4,
-      x: 350,
-      y: 50,
-      width: 50,
-      height: 100,
-      products: ["Packages A", "Packages B", "Packages C"],
-    },
-    {
-      id: 5,
-      x: 410,
-      y: 50,
-      width: 50,
-      height: 100,
-      products: ["Boxes X", "Boxes Y", "Boxes Z"],
-    },
-    {
-      id: 6,
-      x: 470,
-      y: 50,
-      width: 50,
-      height: 100,
-      products: ["Items 1", "Items 2", "Items 3"],
-    },
-  ];
 
   const obstacles = [
     { x: 0, y: 0, width: 600, height: 10 },
@@ -72,6 +22,46 @@ const WarehouseMap = () => {
     { x: 10, y: 200, width: 200, height: 20 },
   ];
 
+  // 🛠️ Configure warehouse and fetch racks
+  const configureWarehouse = async () => {
+    const data = {
+      totalArea: 1000,
+      racks: [
+        { capacity: 100, numberOfCompartments: 4 },
+        { capacity: 120, numberOfCompartments: 3 },
+        { capacity: 80, numberOfCompartments: 2 },
+      ],
+    };
+
+    try {
+      const response = await fetch(
+        "http://localhost:8080/warehouse/configure",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
+
+      const result = await response.json();
+      const configuredRacks = result.racks || [];
+
+      const mapped = configuredRacks.map((rack, index) => ({
+        id: rack.rackId,
+        x: 50 + (index % 3) * 80,
+        y: 50 + Math.floor(index / 3) * 130,
+        width: 50,
+        height: 100,
+        products: rack.compartmentIds.map((id) => `Compartment ${id}`),
+      }));
+
+      setRacks(mapped);
+    } catch (err) {
+      console.error("Error configuring warehouse:", err);
+    }
+  };
+
+  // 🎨 Draw canvas on change
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -97,9 +87,9 @@ const WarehouseMap = () => {
       ctx.fillText(`Rack ${rack.id}`, rack.x + 5, rack.y + 15);
     });
 
-    points.forEach((point) => {
+    points.forEach((p) => {
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+      ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
       ctx.fillStyle = "red";
       ctx.fill();
     });
@@ -107,7 +97,7 @@ const WarehouseMap = () => {
     if (points.length === 2) {
       const grid = new PF.Grid(width / gridSize, height / gridSize);
 
-      racks.concat(obstacles).forEach((block) => {
+      [...racks, ...obstacles].forEach((block) => {
         for (
           let x = block.x / gridSize;
           x < (block.x + block.width) / gridSize;
@@ -149,7 +139,7 @@ const WarehouseMap = () => {
     } else {
       setPathLength(null);
     }
-  }, [points, selectedRack]);
+  }, [points, selectedRack, racks]);
 
   const handleClick = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -172,39 +162,52 @@ const WarehouseMap = () => {
   };
 
   return (
-    <div
-      style={{ background: "#ffffff", padding: "16px", borderRadius: "10px" }}
-    >
+    <div style={{ background: "#fff", padding: "16px", borderRadius: "10px" }}>
       <div
         style={{
+          marginBottom: "12px",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "12px",
+          gap: "10px",
         }}
       >
-        <div style={{ display: "flex", gap: "8px" }}>
-          <input
-            type="text"
-            placeholder="Search product"
-            style={{
-              padding: "6px 10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-            }}
-          />
-          <button
-            style={{
-              backgroundColor: "#007bff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 12px",
-            }}
-          >
-            Path
-          </button>
-        </div>
+        <input
+          type="text"
+          placeholder="Search product"
+          style={{
+            padding: "6px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+          }}
+        />
+        <button
+          onClick={() => {
+            setPoints([]);
+            setSelectedRack(null);
+            setPathLength(null);
+          }}
+          style={{
+            backgroundColor: "#6c757d",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 12px",
+          }}
+        >
+          Reset
+        </button>
+        <button
+          onClick={configureWarehouse}
+          style={{
+            backgroundColor: "#28a745",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 12px",
+          }}
+        >
+          Configure Warehouse
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: "20px" }}>
@@ -220,24 +223,8 @@ const WarehouseMap = () => {
           }}
         />
         <div style={{ width: "250px" }}>
-          <button
-            onClick={() => {
-              setPoints([]);
-              setSelectedRack(null);
-              setPathLength(null);
-            }}
-            style={{
-              marginBottom: "10px",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid #ddd",
-            }}
-          >
-            Reset
-          </button>
-
           {pathLength !== null && (
-            <p style={{ marginBottom: "8px" }}>
+            <p>
               <strong>Shortest Path:</strong> {pathLength} units
             </p>
           )}
@@ -250,13 +237,13 @@ const WarehouseMap = () => {
                 borderRadius: "8px",
               }}
             >
-              <h4 style={{ margin: "0 0 8px 0" }}>Rack {selectedRack.id}</h4>
-              <p style={{ margin: "4px 0" }}>
-                <strong>Products:</strong>
+              <h4>Rack {selectedRack.id}</h4>
+              <p>
+                <strong>Compartments:</strong>
               </p>
-              <ul style={{ paddingLeft: "18px", margin: 0 }}>
-                {selectedRack.products.map((product, index) => (
-                  <li key={index}>{product}</li>
+              <ul style={{ paddingLeft: "18px" }}>
+                {selectedRack.products.map((p, i) => (
+                  <li key={i}>{p}</li>
                 ))}
               </ul>
             </div>

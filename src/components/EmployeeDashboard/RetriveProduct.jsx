@@ -3,13 +3,20 @@ import axios from "axios";
 import WarehouseMap from "../common/WarehouseMap";
 
 function RetrieveProduct() {
+  const [rackId, setRackId] = useState("");
+  const [compartmentId, setCompartmentId] = useState("");
   const [prodId, setProdId] = useState("");
   const [productData, setProductData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [retrieved, setRetrieved] = useState(false);
   const [error, setError] = useState("");
 
-  const handleScan = async () => {
+  const handleRetrieve = async () => {
+    if (!rackId || !compartmentId || !prodId) {
+      setError("❌ Please provide Rack ID, Compartment ID, and Product ID");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setProductData(null);
@@ -17,80 +24,99 @@ function RetrieveProduct() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:8087/warehouse/product/id/${prodId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      if (!token) throw new Error("No token found, please log in again");
+
+      const url = `http://localhost:8087/warehouse/retrieve/${rackId}/${compartmentId}/${prodId}`;
+      console.log("Request URL:", url);
+      console.log("Token (partial):", token.substring(0, 10) + "...");
+
+      const response = await axios.get(url, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status !== 200) {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+
       setProductData(response.data);
+      setRetrieved(true);
     } catch (err) {
-      setError(err.response?.data?.message || "❌ Product not found!");
+      setError(
+        "❌ Failed to retrieve product: " +
+          (err.response?.data?.message || err.message)
+      );
+      console.error("Full error:", err.response ? err.response.data : err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRetrieve = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:8087/warehouse/retrieve/${productData.rackId}/${productData.compartmentId}/${productData.prodId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setRetrieved(true);
-    } catch (err) {
-      setError("❌ Failed to mark as retrieved");
-    }
-  };
-
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white rounded shadow">
+    <div className="p-6 max-w-xl mx-auto bg-white rounded shadow">
       <h2 className="text-2xl font-bold mb-4">📦 Retrieve Product</h2>
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-col gap-4 mb-4">
         <input
-          type="text"
+          type="number"
+          value={rackId}
+          onChange={(e) => setRackId(e.target.value)}
+          placeholder="Enter Rack ID"
+          className="w-full border px-3 py-2 rounded"
+          required
+        />
+        <input
+          type="number"
+          value={compartmentId}
+          onChange={(e) => setCompartmentId(e.target.value)}
+          placeholder="Enter Compartment ID"
+          className="w-full border px-3 py-2 rounded"
+          required
+        />
+        <input
+          type="number"
           value={prodId}
           onChange={(e) => setProdId(e.target.value)}
-          placeholder="Enter product ID"
-          className="border px-4 py-2 rounded w-full"
+          placeholder="Enter Product ID"
+          className="w-full border px-3 py-2 rounded"
+          required
         />
         <button
-          onClick={handleScan}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={handleRetrieve}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          disabled={loading || !rackId || !compartmentId || !prodId}
         >
-          Fetch
+          {loading ? "Retrieving..." : "Mark as Retrieved"}
         </button>
       </div>
-      {loading && <p>🔄 Loading product info...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+
+      {error && <div className="mt-4 text-red-600 font-medium">{error}</div>}
+
       {productData && (
-        <div className="bg-gray-100 p-4 rounded mb-4">
-          <h3 className="text-lg font-semibold">Product Info:</h3>
+        <div className="mt-6 bg-green-50 p-4 rounded shadow text-sm text-green-800">
           <p>
-            <strong>Name:</strong> {productData.prodName}
+            <strong>✅ Retrieved Successfully!</strong>
           </p>
+          <p>Product ID: {productData.prodId}</p>
+          <p>Name: {productData.prodName}</p>
           <p>
-            <strong>Location:</strong> Rack {productData.rackId}, Compartment{" "}
+            Location: Rack {productData.rackId}, Compartment{" "}
             {productData.compartmentId}
           </p>
+          <p>Action: {productData.action}</p>
+          <p>Employee ID: {productData.empId}</p>
+          <p>
+            Time of Movement:{" "}
+            {new Date(productData.timeOfMovement).toLocaleString()}
+          </p>
+          <p>Movement ID: {productData.movementId}</p>
           <WarehouseMap
             highlightPathTo={{
               rack: productData.rackId,
               row: productData.compartmentId,
             }}
           />
-          {!retrieved ? (
-            <button
-              onClick={handleRetrieve}
-              className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Mark as Retrieved
-            </button>
-          ) : (
-            <p className="text-green-600 mt-4">
-              ✅ Product Retrieved Successfully!
-            </p>
-          )}
         </div>
       )}
     </div>
